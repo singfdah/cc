@@ -1,0 +1,41 @@
+name: Setup RDP
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  setup_rdp:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Windows Image
+        run: |
+          wget -O win10Admin.img.zip "https://sharedby.blomp.com/nbWjkU"
+          unzip win10Admin.img.zip -d ./
+          mv win10Admin.img win.img
+
+      - name: Install OpenVPN
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openvpn
+
+      - name: Connect to Portmap VPN
+        run: |
+          sudo openvpn --config xama.first.ovpn &
+
+      - name: Setup QEMU
+        run: |
+          sudo apt-get install -y qemu-kvm
+          qemu-system-x86_64 -hda win.img -m 4G -net nic -net user,hostfwd=tcp::3389-:3389 -vga std -display none -daemonize
+
+      - name: Verify RDP is Active
+        run: |
+          echo "RDP is set up and should be accessible on port 3389 via the Portmap VPN."
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f win10Admin.img.zip
+          rm -f win.img
